@@ -39,12 +39,12 @@
           {{ if ne .Kind "reply" }}
             <a href="{{ .Origin }}/api/email/moderate?commentHex={{ .CommentHex }}&action=delete&unsubscribeSecretHex={{ .UnsubscribeSecretHex }}" target="_black" class="option red" style="padding-right:5px;text-transform:uppercase;font-size:12px;font-weight:bold;text-decoration:none;color:#f03e3e;">Delete</a>
           {{ end }}
-            <a href="http://{{ .Domain }}{{ .Path }}#commento-{{ .CommentHex }}" class="option gray" style="padding-right:5px;text-transform:uppercase;font-size:12px;font-weight:bold;text-decoration:none;color:#495057;">Context</a>
+            <a href="{{ .PageUrl }}#commento-{{ .CommentHex }}" class="option gray" style="padding-right:5px;text-transform:uppercase;font-size:12px;font-weight:bold;text-decoration:none;color:#495057;">Context</a>
           </div>
           <div class="header" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:10px;">
             <div class="name" style="display:inline;font-size:14px;font-weight:bold;color:#1e2127;">{{ .CommenterName }}</div>
              on
-                <a href="http://{{ .Domain }}{{ .Path }}" class="page" style="margin-bottom:10px;text-decoration:none;color:#228be6;">"{{ .Title }}"</a>
+                <a href="{{ .PageUrl }}" class="page" style="margin-bottom:10px;text-decoration:none;color:#228be6;">"{{ .Title }}"</a>
           </div>
           <div class="text" style="line-height:20px;padding:10px;">
             {{ .Html }}

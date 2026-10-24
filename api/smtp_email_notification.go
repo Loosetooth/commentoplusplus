@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	ht "html/template"
+	"net/url"
 	"os"
 )
 
@@ -11,8 +12,7 @@ type emailNotificationPlugs struct {
 	Origin               string
 	Kind                 string
 	UnsubscribeSecretHex string
-	Domain               string
-	Path                 string
+	PageUrl              string
 	CommentHex           string
 	CommenterName        string
 	Title                string
@@ -26,12 +26,14 @@ func smtpEmailNotification(to string, toName string, kind string, domain string,
 		return errorMalformedTemplate
 	}
 
+	// Built from parts so that a path like "@evil.com/" can't change the host.
+	pageUrl := url.URL{Scheme: "http", Host: domain, Path: path}
+
 	var body bytes.Buffer
 	err = t.Execute(&body, &emailNotificationPlugs{
 		Origin:               os.Getenv("ORIGIN"),
 		Kind:                 kind,
-		Domain:               domain,
-		Path:                 path,
+		PageUrl:              pageUrl.String(),
 		CommentHex:           commentHex,
 		CommenterName:        commenterName,
 		Title:                title,

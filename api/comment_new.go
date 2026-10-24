@@ -76,9 +76,30 @@ func commentNewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// domainGet matches domains loosely (case-insensitive, ignoring dots), but
+	// the owner and moderator checks don't. Store the comment under the domain
+	// as registered so that it can always be moderated.
+	if !strings.ContainsAny(d.Domain, "%_") {
+		domain = d.Domain
+	} else {
+		var matches bool
+		if err = db.QueryRow(`SELECT $1 LIKE $2;`, domain, d.Domain).Scan(&matches); err != nil || !matches {
+			bodyMarshal(w, response{"success": false, "message": errorNoSuchDomain.Error()})
+			return
+		}
+	}
+
 	if d.State == "frozen" {
 		bodyMarshal(w, response{"success": false, "message": errorDomainFrozen.Error()})
 		return
+	}
+
+	if *x.ParentHex != "root" {
+		parentDomain, parentPath, err := commentDomainPathGet(*x.ParentHex)
+		if err != nil || parentDomain != domain || parentPath != path {
+			bodyMarshal(w, response{"success": false, "message": errorNoSuchComment.Error()})
+			return
+		}
 	}
 
 	if d.RequireIdentification && *x.CommenterToken == "anonymous" {

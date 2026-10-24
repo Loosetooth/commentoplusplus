@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -40,8 +41,8 @@ type Client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
-	// the page they're on
-	url string
+	// the page they're on (a string), set by readPump and read by writePump
+	url atomic.Value
 
 	// Buffered channel of outbound messages.
 	send chan []byte
@@ -69,7 +70,7 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.url = string(message)
+		c.url.Store(string(message))
 	}
 }
 
@@ -95,8 +96,9 @@ func (c *Client) writePump() {
 			}
 
 			// not for this url
-			if string(message) != c.url {
-				return
+			url, _ := c.url.Load().(string)
+			if string(message) != url {
+				continue
 			}
 
 			w, err := c.conn.NextWriter(websocket.TextMessage)
@@ -108,8 +110,10 @@ func (c *Client) writePump() {
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
+				if queued := <-c.send; string(queued) == url {
+					w.Write(newline)
+					w.Write(queued)
+				}
 			}
 
 			if err := w.Close(); err != nil {
