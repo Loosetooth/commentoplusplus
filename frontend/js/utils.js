@@ -74,7 +74,7 @@
     date.setTime(date.getTime() + (365*24*60*60*1000));
     expires = "; expires=" + date.toUTCString();
 
-    var cookieString = name + "=" + value + expires + "; path=/";
+    var cookieString = name + "=" + value + expires + "; path=/; SameSite=Lax";
     if (/^https:\/\//i.test(global.origin)) {
       cookieString += "; secure";
     }

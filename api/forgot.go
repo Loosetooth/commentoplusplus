@@ -37,7 +37,7 @@ func forgot(email string, entity string) error {
 	} else {
 		c, err := commenterGetByEmail("commento", email)
 		if err != nil {
-			if err == errorNoSuchEmail {
+			if err == errorNoSuchCommenter {
 				// TODO: use a more random time instead.
 				time.Sleep(1 * time.Second)
 				return nil

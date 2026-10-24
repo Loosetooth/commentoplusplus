@@ -256,7 +256,12 @@
     date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
     expires = "; expires=" + date.toUTCString();
 
-    document.cookie = name + "=" + value + expires + "; path=/";
+    var cookieString = name + "=" + value + expires + "; path=/; SameSite=Lax";
+    if (window.location.protocol === "https:") {
+      cookieString += "; Secure";
+    }
+
+    document.cookie = cookieString;
   }
 
 
@@ -305,6 +310,7 @@
 
 
   global.logout = function() {
+    post(origin + "/api/commenter/logout", {"commenterToken": commenterTokenGet()}, function() {});
     cookieSet("commentoCommenterToken", "anonymous");
     isAuthenticated = false;
     isModerator = false;
@@ -314,7 +320,7 @@
 
 
   function profileEdit() {
-    window.open(origin + "/profile?commenterToken=" + commenterTokenGet(), "_blank");
+    window.open(origin + "/profile#" + commenterTokenGet(), "_blank");
   }
 
 
@@ -2096,18 +2102,18 @@
         errorHide();
       }
 
-      loginUP(email.value, password.value, id);
-    });
-  }
-
-
-  global.passwordAsk = function(id) {
       if (resp.confirmEmail) {
         global.loginBoxClose();
         errorShow(i18n("Please check your email to confirm your address, then log in."), true);
         return;
       }
 
+      loginUP(email.value, password.value, id);
+    });
+  }
+
+
+  global.passwordAsk = function(id) {
     var loginBox = $(ID_LOGIN_BOX);
     var subtitle = $(ID_LOGIN_BOX_EMAIL_SUBTITLE);
     

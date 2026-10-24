@@ -3,6 +3,7 @@ package main
 import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"time"
 )
 
 func reset(resetHex string, password string) (string, error) {
@@ -13,9 +14,9 @@ func reset(resetHex string, password string) (string, error) {
 	statement := `
 		SELECT hex, entity
 		FROM resetHexes
-		WHERE resetHex = $1;
+		WHERE resetHex = $1 AND sendDate::timestamptz > $2;
 	`
-	row := db.QueryRow(statement, resetHex)
+	row := db.QueryRow(statement, resetHex, time.Now().UTC().Add(-1*time.Hour))
 
 	var hex string
 	var entity string
@@ -36,8 +37,9 @@ func reset(resetHex string, password string) (string, error) {
 			WHERE ownerHex = $2;
 		`
 	} else {
+		// Receiving the reset email proves ownership of the address.
 		statement = `
-			UPDATE commenters SET passwordHash = $1
+			UPDATE commenters SET passwordHash = $1, confirmedEmail=true
 			WHERE commenterHex = $2;
 		`
 	}
@@ -50,11 +52,30 @@ func reset(resetHex string, password string) (string, error) {
 
 	statement = `
 		DELETE FROM resetHexes
-		WHERE resetHex = $1;
+		WHERE hex = $1;
 	`
-	_, err = db.Exec(statement, resetHex)
+	_, err = db.Exec(statement, hex)
 	if err != nil {
 		logger.Warningf("cannot remove resetHex: %v\n", err)
+	}
+
+	// Log out every existing session, in case the password was reset because
+	// the account was compromised.
+	if entity == "owner" {
+		statement = `
+			DELETE FROM ownerSessions
+			WHERE ownerHex = $1;
+		`
+	} else {
+		statement = `
+			DELETE FROM commenterSessions
+			WHERE commenterHex = $1;
+		`
+	}
+	_, err = db.Exec(statement, hex)
+	if err != nil {
+		logger.Errorf("cannot remove %s's sessions: %v\n", entity, err)
+		return "", errorInternal
 	}
 
 	return entity, nil

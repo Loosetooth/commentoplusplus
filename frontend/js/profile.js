@@ -3,6 +3,12 @@
 
   (document);
 
+  // The token is passed in the URL fragment so that it isn't sent to the
+  // server in request logs or Referer headers.
+  function commenterTokenGet() {
+    return window.location.hash.substring(1);
+  }
+
   // Update the email records.
   global.update = function(event) {
     event.preventDefault();
@@ -20,7 +26,7 @@
     }
 
     var json = {
-      "commenterToken": global.paramGet("commenterToken"),
+      "commenterToken": commenterTokenGet(),
       "name": $("#name").val(),
       "email": $("#email").val(),
       "link": $("#link").val(),
@@ -48,7 +54,7 @@
 
 
       var json = {
-        "commenterToken": global.paramGet("commenterToken")
+        "commenterToken": commenterTokenGet()
       };
 
       global.buttonDisable("#save-button");
@@ -68,7 +74,7 @@
     $(".err").text("");
     $(".msg").text("");
     var json = {
-      "commenterToken": global.paramGet("commenterToken"),
+      "commenterToken": commenterTokenGet(),
     };
 
     global.post(global.origin + "/api/commenter/self", json, function(resp) {
