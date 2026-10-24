@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/xml"
 	"github.com/lunny/html2md"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -63,7 +64,7 @@ func domainImportDisqus(domain string, url string) (int, error) {
 	}
 
 	// TODO: make sure this is from disqus.com
-	resp, err := http.Get(url)
+	resp, err := publicHttpClient.Get(url)
 	if err != nil {
 		logger.Errorf("cannot get url: %v", err)
 		return 0, errorCannotDownloadDisqus
@@ -71,13 +72,13 @@ func domainImportDisqus(domain string, url string) (int, error) {
 
 	defer resp.Body.Close()
 
-	zr, err := gzip.NewReader(resp.Body)
+	zr, err := gzip.NewReader(io.LimitReader(resp.Body, maxImportSize))
 	if err != nil {
 		logger.Errorf("cannot create gzip reader: %v", err)
 		return 0, errorInternal
 	}
 
-	contents, err := ioutil.ReadAll(zr)
+	contents, err := ioutil.ReadAll(io.LimitReader(zr, maxImportSize))
 	if err != nil {
 		logger.Errorf("cannot read gzip contents uncompressed: %v", err)
 		return 0, errorInternal

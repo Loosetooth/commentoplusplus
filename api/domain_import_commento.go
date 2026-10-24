@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 )
+
+// Imports are downloaded and decompressed in memory, so cap their size.
+const maxImportSize = 256 << 20
 
 type commentoExportV1 struct {
 	Version    int         `json:"version"`
@@ -19,14 +23,14 @@ func domainImportCommento(domain string, url string) (int, error) {
 		return 0, errorMissingField
 	}
 
-	resp, err := http.Get(url)
+	resp, err := publicHttpClient.Get(url)
 	if err != nil {
 		logger.Errorf("cannot get url: %v", err)
 		return 0, errorCannotDownloadCommento
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, maxImportSize))
 	if err != nil {
 		logger.Errorf("cannot read body: %v", err)
 		return 0, errorCannotDownloadCommento
@@ -38,7 +42,7 @@ func domainImportCommento(domain string, url string) (int, error) {
 		return 0, errorInternal
 	}
 
-	contents, err := ioutil.ReadAll(zr)
+	contents, err := ioutil.ReadAll(io.LimitReader(zr, maxImportSize))
 	if err != nil {
 		logger.Errorf("cannot read gzip contents uncompressed: %v", err)
 		return 0, errorInternal

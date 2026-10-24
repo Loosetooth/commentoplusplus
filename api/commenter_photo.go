@@ -32,21 +32,21 @@ func commenterPhotoHandler(w http.ResponseWriter, r *http.Request) {
 		url += "?width=38"
 	}
 
-	resp, err := http.Get(url)
+	resp, err := publicHttpClient.Get(url)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 	defer resp.Body.Close()
 
-	if c.Provider != "commento" { // Custom URL avatars need to be resized.
-		io.Copy(w, resp.Body)
-		return
-	}
-
 	// Limit the size of the response to 128 KiB to prevent DoS attacks
 	// that exhaust memory.
 	limitedResp := &io.LimitedReader{R: resp.Body, N: 128 * 1024}
+
+	if c.Provider != "commento" { // Custom URL avatars need to be resized.
+		io.Copy(w, limitedResp)
+		return
+	}
 
 	img, _, err := image.Decode(limitedResp)
 	if err != nil {

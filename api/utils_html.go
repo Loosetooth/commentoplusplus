@@ -1,8 +1,9 @@
 package main
 
 import (
+	"io"
+
 	"golang.org/x/net/html"
-	"net/http"
 )
 
 func htmlTitleRecurse(h *html.Node) string {
@@ -25,13 +26,13 @@ func htmlTitleRecurse(h *html.Node) string {
 }
 
 func htmlTitleGet(url string) (string, error) {
-	resp, err := http.Get(url)
+	resp, err := publicHttpClient.Get(url)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	h, err := html.Parse(resp.Body)
+	h, err := html.Parse(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return "", err
 	}

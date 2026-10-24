@@ -102,6 +102,10 @@ func TestImportCommento(t *testing.T) {
 
 	domainNew("temp-owner-hex", "Example", "example.com")
 
+	// The export is served from localhost, which publicHttpClient refuses.
+	defer func(c *http.Client) { publicHttpClient = c }(publicHttpClient)
+	publicHttpClient = http.DefaultClient
+
 	n, err := domainImportCommento("example.com", url)
 	if err != nil {
 		t.Errorf("unexpected error importing comments: %v", err)

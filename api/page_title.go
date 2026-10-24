@@ -1,18 +1,18 @@
 package main
 
 import (
+	"net/url"
 	"os"
 )
 
 func pageTitleUpdate(domain string, path string) (string, error) {
-	ssl := os.Getenv("SSL")
-	pre := ""
-	if ssl == "true" {
-		pre = "https://"
-	} else {
-		pre = "http://"
+	u := url.URL{Scheme: "http", Host: domain, Path: path}
+	if os.Getenv("SSL") == "true" {
+		u.Scheme = "https"
 	}
-	title, err := htmlTitleGet(pre + domain + path)
+	// Building the URL from parts (instead of concatenating strings) ensures
+	// that a client-supplied path like "@internal-host/" can't change the host.
+	title, err := htmlTitleGet(u.String())
 	if err != nil {
 		// This could fail due to a variety of reasons that we can't control such
 		// as the user's URL 404 or something, so let's not pollute the error log
