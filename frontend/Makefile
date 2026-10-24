@@ -2,11 +2,11 @@ BUILD_DIR              = build
 GULP                   = node_modules/.bin/gulp
 
 devel:
-	yarn install
+	yarn install --frozen-lockfile
 	$(GULP) devel
 
 prod:
-	yarn install
+	yarn install --frozen-lockfile
 	$(GULP) prod
 
 clean:
