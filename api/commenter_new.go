@@ -50,12 +50,17 @@ func commenterNew(email string, name string, link string, photo string, provider
 		passwordHash = []byte{}
 	}
 
+	// Moderator rights are granted by email address, so an email address must
+	// be confirmed before it can be used to log in. OAuth providers have
+	// already verified it; without SMTP there's no way to confirm.
+	confirmedEmail := provider != "commento" || !smtpConfigured
+
 	statement := `
 		INSERT INTO
-		commenters (commenterHex, email, name, link, photo, provider, passwordHash, joinDate)
-		VALUES     ($1,           $2,    $3,   $4,   $5,    $6,       $7,           $8      );
+		commenters (commenterHex, email, name, link, photo, provider, passwordHash, joinDate, confirmedEmail)
+		VALUES     ($1,           $2,    $3,   $4,   $5,    $6,       $7,           $8,       $9            );
 	`
-	_, err = db.Exec(statement, commenterHex, email, name, link, photo, provider, string(passwordHash), time.Now().UTC())
+	_, err = db.Exec(statement, commenterHex, email, name, link, photo, provider, string(passwordHash), time.Now().UTC(), confirmedEmail)
 	if err != nil {
 		logger.Errorf("cannot insert commenter: %v", err)
 		return "", errorInternal
@@ -85,9 +90,17 @@ func commenterNewHandler(w http.ResponseWriter, r *http.Request) {
 		*x.Website = "undefined"
 	}
 
-	if _, err := commenterNew(*x.Email, *x.Name, *x.Website, "undefined", "commento", *x.Password); err != nil {
+	commenterHex, err := commenterNew(*x.Email, *x.Name, *x.Website, "undefined", "commento", *x.Password)
+	if err != nil {
 		bodyMarshal(w, response{"success": false, "message": err.Error()})
 		return
+	}
+
+	if smtpConfigured {
+		if err := commenterConfirmHexNew(commenterHex, *x.Email, *x.Name); err != nil {
+			bodyMarshal(w, response{"success": false, "message": err.Error()})
+			return
+		}
 	}
 
 	bodyMarshal(w, response{"success": true, "confirmEmail": smtpConfigured})

@@ -2102,6 +2102,12 @@
 
 
   global.passwordAsk = function(id) {
+      if (resp.confirmEmail) {
+        global.loginBoxClose();
+        errorShow(i18n("Please check your email to confirm your address, then log in."), true);
+        return;
+      }
+
     var loginBox = $(ID_LOGIN_BOX);
     var subtitle = $(ID_LOGIN_BOX_EMAIL_SUBTITLE);
     

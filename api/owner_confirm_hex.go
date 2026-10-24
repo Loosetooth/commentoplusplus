@@ -35,6 +35,27 @@ func ownerConfirmHex(confirmHex string) error {
 		return errorNoSuchConfirmationToken
 	}
 
+	// The commenter account created along with the owner account uses the
+	// same, now confirmed, email address. Commenters that registered with it
+	// before the owner did were created by someone else and stay unconfirmed.
+	statement = `
+		UPDATE commenters
+		SET confirmedEmail=true
+		FROM owners
+		WHERE commenters.provider='commento'
+			AND commenters.email=owners.email
+			AND commenters.joinDate>=owners.joinDate
+			AND owners.ownerHex IN (
+				SELECT ownerHex FROM ownerConfirmHexes
+				WHERE confirmHex=$1
+			);
+	`
+	_, err = db.Exec(statement, confirmHex)
+	if err != nil {
+		logger.Errorf("cannot mark commenter's confirmedEmail as true: %v\n", err)
+		return errorInternal
+	}
+
 	statement = `
 		DELETE FROM ownerConfirmHexes
 		WHERE confirmHex=$1;

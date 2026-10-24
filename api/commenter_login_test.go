@@ -56,3 +56,35 @@ func TestCommenterLoginNonCommento(t *testing.T) {
 		return
 	}
 }
+
+func TestCommenterLoginUnconfirmed(t *testing.T) {
+	failTestOnError(t, setupTestEnv())
+
+	smtpConfigured = true
+	commenterHex, _ := commenterNew("test@example.com", "Test", "undefined", "undefined", "commento", "hunter2")
+	smtpConfigured = false
+
+	if _, err := commenterLogin("test@example.com", "hunter2"); err != errorUnconfirmedEmail {
+		t.Errorf("expected errorUnconfirmedEmail when logging in with an unconfirmed email, got: %v", err)
+		return
+	}
+
+	statement := `
+		INSERT INTO commenterConfirmHexes (confirmHex, commenterHex, sendDate)
+		VALUES ('confirm-hex', $1, now());
+	`
+	if _, err := db.Exec(statement, commenterHex); err != nil {
+		t.Errorf("unexpected error inserting confirmHex: %v", err)
+		return
+	}
+
+	if err := commenterConfirmHex("confirm-hex"); err != nil {
+		t.Errorf("unexpected error confirming email: %v", err)
+		return
+	}
+
+	if _, err := commenterLogin("test@example.com", "hunter2"); err != nil {
+		t.Errorf("unexpected error when logging in after confirming: %v", err)
+		return
+	}
+}

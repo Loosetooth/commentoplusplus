@@ -25,6 +25,10 @@ func googleCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+	if err != nil {
+		fmt.Fprintf(w, "Error: %s", errorCannotReadResponse.Error())
+		return
+	}
 	defer resp.Body.Close()
 
 	contents, err := ioutil.ReadAll(resp.Body)

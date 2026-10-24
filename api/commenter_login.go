@@ -12,7 +12,7 @@ func commenterLogin(email string, password string) (string, error) {
 	}
 
 	statement := `
-		SELECT commenterHex, passwordHash
+		SELECT commenterHex, passwordHash, confirmedEmail
 		FROM commenters
 		WHERE email = $1 AND provider = 'commento' AND deleted=false;
 	`
@@ -20,13 +20,18 @@ func commenterLogin(email string, password string) (string, error) {
 
 	var commenterHex string
 	var passwordHash string
-	if err := row.Scan(&commenterHex, &passwordHash); err != nil {
+	var confirmedEmail bool
+	if err := row.Scan(&commenterHex, &passwordHash, &confirmedEmail); err != nil {
 		return "", errorInvalidEmailPassword
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
 		// TODO: is this the only possible error?
 		return "", errorInvalidEmailPassword
+	}
+
+	if !confirmedEmail {
+		return "", errorUnconfirmedEmail
 	}
 
 	commenterToken, err := randomHex(32)

@@ -33,6 +33,7 @@ Subject: {{.Subject}}
 
 	names := []string{
 		"confirm-hex",
+		"commenter-confirm-hex",
 		"reset-hex",
 		"domain-export",
 		"domain-export-error",

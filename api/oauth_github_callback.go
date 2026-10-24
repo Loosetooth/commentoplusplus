@@ -13,6 +13,9 @@ func githubGetPrimaryEmail(accessToken string) (string, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user/emails", nil)
 	req.Header.Add("Authorization", "token "+accessToken)
 	resp, err := client.Do(req)
+	if err != nil {
+		return "", errorCannotReadResponse
+	}
 	defer resp.Body.Close()
 
 	contents, err := ioutil.ReadAll(resp.Body)
@@ -26,11 +29,16 @@ func githubGetPrimaryEmail(accessToken string) (string, error) {
 		return "", errorInternal
 	}
 
+	// Only use verified addresses: anyone can add an unverified address to
+	// their GitHub account, and email addresses grant moderator rights.
 	nonPrimaryEmail := ""
 	for _, email := range user {
-		nonPrimaryEmail = email["email"].(string)
-		if email["primary"].(bool) {
-			return email["email"].(string), nil
+		if verified, _ := email["verified"].(bool); !verified {
+			continue
+		}
+		nonPrimaryEmail, _ = email["email"].(string)
+		if primary, _ := email["primary"].(bool); primary {
+			return nonPrimaryEmail, nil
 		}
 	}
 
